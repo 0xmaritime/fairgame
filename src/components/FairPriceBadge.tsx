@@ -21,8 +21,8 @@ const FairPriceBadge: React.FC<FairPriceBadgeProps> = ({ tier, amount }) => {
 
   return (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${colorClass}`}>
-      {tier === 'Free-to-Play' ? 'Free-to-Play' : `$${amount || 'N/A'}`}
-      {tier !== 'Free-to-Play' && amount && <span className="ml-1">{tier}</span>}
+      {tier === 'Free-to-Play' ? 'Free-to-Play' : 
+       amount ? `$${amount}` : tier}
     </span>
   );
 };

@@ -5,6 +5,39 @@ import { v4 as uuidv4 } from 'uuid';
 
 const uploadDirectory = path.join(process.cwd(), 'public', 'uploads');
 
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const filename = searchParams.get('filename');
+    
+    if (!filename) {
+      return NextResponse.json(
+        { message: 'Filename parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    const filePath = path.join(uploadDirectory, filename);
+    await fs.unlink(filePath);
+
+    return NextResponse.json(
+      { message: 'File deleted successfully' },
+      { status: 200 }
+    );
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return NextResponse.json(
+        { message: 'File not found' },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json(
+      { message: 'Failed to delete file' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();

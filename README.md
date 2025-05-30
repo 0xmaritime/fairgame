@@ -2,6 +2,20 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+### Security Notes
+
+#### Admin Authentication
+- Passwords are securely hashed using bcrypt
+- Default admin password is 'admin' (CHANGE THIS IN PRODUCTION)
+- To generate a new password hash:
+  ```bash
+  node -e "console.log(require('bcryptjs').hashSync('yourpassword', 10))"
+  ```
+- Required environment variable:
+  ```
+  ADMIN_PASSWORD_HASH=your_generated_bcrypt_hash
+  ```
+
 First, run the development server:
 
 ```bash

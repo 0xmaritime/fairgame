@@ -63,8 +63,8 @@ export default function AdminDashboard() {
       }
       const data: GameReview[] = await res.json();
       setReviews(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }
@@ -74,16 +74,38 @@ export default function AdminDashboard() {
     if (!window.confirm('Are you sure you want to delete this review?')) {
       return;
     }
+
     try {
+      // First get the review to access its featuredImage
+      const reviewToDelete = reviews.find(r => r.slug === slug);
+      if (!reviewToDelete) {
+        throw new Error('Review not found');
+      }
+
+      // Delete the review via API
       const res = await fetch(`/api/reviews/${slug}`, {
         method: 'DELETE',
       });
+
       if (!res.ok) {
         throw new Error('Failed to delete review');
       }
+
+      // If review deleted successfully, try to delete the associated image
+      if (reviewToDelete.featuredImage) {
+        try {
+          await fetch(`/api/upload?filename=${reviewToDelete.featuredImage}`, {
+            method: 'DELETE',
+          });
+        } catch (err) {
+          console.error('Failed to delete image:', err instanceof Error ? err.message : 'Unknown error');
+        }
+      }
+
+      // Update local state
       setReviews((prev) => prev.filter((review) => review.slug !== slug));
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to delete review');
     }
   };
 

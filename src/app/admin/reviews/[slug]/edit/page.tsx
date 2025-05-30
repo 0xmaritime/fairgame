@@ -46,8 +46,8 @@ export default function EditReviewPage({ params }: EditReviewPageProps) {
       }
       const data: GameReview = await res.json();
       setReview(data);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch review');
     } finally {
       setLoadingReview(false);
       setLoadingAuth(false); // Auth check is done after review fetch

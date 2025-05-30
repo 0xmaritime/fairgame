@@ -112,8 +112,8 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
 
       const result = await res.json();
       return result.filename;
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Image upload failed');
       return null;
     }
   };
@@ -167,8 +167,8 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
         // Redirect to edit page for new review
         router.push(`/admin/reviews/${result.slug}/edit`);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save review');
     } finally {
       setLoading(false);
     }
