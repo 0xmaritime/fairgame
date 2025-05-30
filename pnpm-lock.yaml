@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@next/env':
+        specifier: ^15.3.3
+        version: 15.3.3
       '@types/bcryptjs':
         specifier: ^3.0.0
         version: 3.0.0
@@ -51,6 +54,9 @@ importers:
       autoprefixer:
         specifier: ^10.4.21
         version: 10.4.21(postcss@8.5.4)
+      dotenv:
+        specifier: ^16.5.0
+        version: 16.5.0
       postcss:
         specifier: ^8.5.4
         version: 8.5.4
@@ -496,6 +502,10 @@ packages:
 
   devlop@1.1.0:
     resolution: {integrity: sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA==}
+
+  dotenv@16.5.0:
+    resolution: {integrity: sha512-m/C+AwOAr9/W1UOIZUo232ejMNnJAJtYQjUbHoNTBNTJSvqzzDh7vnrei3o3r3m9blf6ZoDkvcw0VmozNRFJxg==}
+    engines: {node: '>=12'}
 
   electron-to-chromium@1.5.161:
     resolution: {integrity: sha512-hwtetwfKNZo/UlwHIVBlKZVdy7o8bIZxxKs0Mv/ROPiQQQmDgdm5a+KvKtBsxM8ZjFzTaCeLoodZ8jiBE3o9rA==}
@@ -1298,6 +1308,8 @@ snapshots:
   devlop@1.1.0:
     dependencies:
       dequal: 2.0.3
+
+  dotenv@16.5.0: {}
 
   electron-to-chromium@1.5.161: {}
 
