@@ -4,25 +4,51 @@ import { GameReview } from '../types/game-review';
 interface FairPriceBadgeProps {
   tier: GameReview['fairPriceTier'];
   amount?: number;
+  size?: 'sm' | 'md' | 'lg';
 }
 
 const tierColors: Record<GameReview['fairPriceTier'], string> = {
-  Premium: 'bg-premium text-white',
-  Standard: 'bg-standard text-white',
-  Budget: 'bg-budget text-black',
-  'Free-to-Play': 'bg-free-to-play text-white',
-  'Wait-for-Sale': 'bg-gray-500 text-white',
-  'Never-Buy': 'bg-black text-white',
-  'Subscription-Only': 'bg-purple-500 text-white', // Using a placeholder purple for now
+  Premium: 'bg-price-premium text-white',
+  Standard: 'bg-price-standard text-white',
+  Budget: 'bg-price-budget text-black',
+  'Free-to-Play': 'bg-price-free-play text-white',
+  'Wait-for-Sale': 'bg-price-wait-sale text-white',
+  'Never-Buy': 'bg-price-never-buy text-white',
+  'Subscription-Only': 'bg-price-subscription text-white',
 };
 
-const FairPriceBadge: React.FC<FairPriceBadgeProps> = ({ tier, amount }) => {
+const sizeClasses = {
+  sm: 'px-2 py-0.5 text-xs',
+  md: 'px-3 py-1 text-sm',
+  lg: 'px-4 py-2 text-base',
+};
+
+const FairPriceBadge: React.FC<FairPriceBadgeProps> = ({ tier, amount, size = 'md' }) => {
   const colorClass = tierColors[tier] || 'bg-gray-300 text-black'; // Fallback color
+  const sizeClass = sizeClasses[size];
+
+  const displayContent = () => {
+    switch (tier) {
+      case 'Premium':
+      case 'Standard':
+      case 'Budget':
+        return amount ? `$${amount}` : tier; // Show amount if available, otherwise tier name
+      case 'Free-to-Play':
+        return 'Free-to-Play';
+      case 'Wait-for-Sale':
+        return 'Wait for Sale';
+      case 'Never-Buy':
+        return 'Never Buy';
+      case 'Subscription-Only':
+        return 'Subscription Only';
+      default:
+        return tier;
+    }
+  };
 
   return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${colorClass}`}>
-      {tier === 'Free-to-Play' ? 'Free-to-Play' : 
-       amount ? `$${amount}` : tier}
+    <span className={`inline-flex items-center rounded-full font-semibold ${colorClass} ${sizeClass}`}>
+      {displayContent()}
     </span>
   );
 };

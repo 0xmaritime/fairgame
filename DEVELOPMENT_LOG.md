@@ -69,17 +69,17 @@ interface GameReview {
 
 **Price Tier Colors:**
 - Premium: Green (#10b981)
-- Standard: Blue (#3b82f6) 
+- Standard: Blue (#3b82f6)
 - Budget: Yellow (#f59e0b)
 - Free-to-Play: Red (#ef4444)
 - Other tiers: Appropriate muted colors
 
 ## Key Components to Build
-1. **FairPriceBadge** - Prominent price display with tier-based coloring
-2. **ReviewCard** - Minimal card for review listings (image, title, price, verdict excerpt)
-3. **ReviewForm** - Admin form with all review fields, image upload, markdown editor
-4. **YouTubeEmbed** - Simple responsive video embedding
-5. **AdminLayout** - Basic admin wrapper with navigation
+1.  **FairPriceBadge** - Prominent price display with tier-based coloring
+2.  **ReviewCard** - Minimal card for review listings (image, title, price, verdict excerpt)
+3.  **ReviewForm** - Admin form with all review fields, image upload, markdown editor
+4.  **YouTubeEmbed** - Simple responsive video embedding
+5.  **AdminLayout** - Basic admin wrapper with navigation
 
 ## File Operations
 - Use Node.js `fs/promises` for JSON file CRUD operations
@@ -103,7 +103,7 @@ interface GameReview {
 ## Validation Test
 Create one complete review through admin interface:
 - Title: "Example Game Review"
-- Game: "Test Game 2024" 
+- Game: "Test Game 2024"
 - Fair Price Tier: "Budget"
 - Fair Price Amount: 15
 - Quick Verdict: "Decent gameplay held back by technical issues"
@@ -195,9 +195,80 @@ The development process involved setting up the Next.js project, implementing co
 *   **Pros/Cons Input Issue:** The persistent and unusual input problem with `textarea` elements (affecting even spaces) was likely an environment-specific anomaly (e.g., VS Code's embedded browser, extensions, or system-level input). The solution involved a UI refactor to dynamic individual input fields, which successfully bypassed the issue.
 *   **File-based Content:** The application uses `fs/promises` for content management, which is suitable for small projects but would not scale for large numbers of reviews or concurrent writes.
 
+## Improvements and Technical Debt Addressed (Post-Initial Implementation)
+
+Following the initial implementation, several areas for improvement and technical debt were addressed:
+
+1.  **Security:**
+    *   Implemented bcrypt password hashing for admin authentication (`src/app/api/auth/route.ts`).
+    *   Removed plaintext password storage.
+    *   Added security notes to the README.
+
+2.  **Error Handling:**
+    *   Improved error handling and validation across API routes (`src/app/api/reviews/route.ts`, `src/app/api/reviews/[slug]/route.ts`, `src/app/api/upload/route.ts`, `src/app/api/auth/route.ts`).
+    *   Added more specific error messages and appropriate HTTP status codes.
+    *   Removed debug `console.log` statements.
+
+3.  **Design & UX:**
+    *   Added a featured reviews grid to the homepage (`src/app/page.tsx`).
+    *   Simplified the `FairPriceBadge` component to remove redundant tier text when an amount is present (`src/components/FairPriceBadge.tsx`).
+    *   Implemented site-wide navigation (`src/components/Navigation.tsx`, integrated into `src/app/layout.tsx`).
+
+4.  **Technical Debt:**
+    *   Removed instances of `any` type and improved type safety across the codebase, particularly in API routes and components (`src/app/api/reviews/route.ts`, `src/app/api/reviews/[slug]/route.ts`, `src/app/api/upload/route.ts`, `src/app/api/auth/route.ts`, `src/components/ReviewForm.tsx`, `src/app/admin/page.tsx`, `src/app/admin/reviews/[slug]/edit/page.tsx`).
+    *   Implemented logic to delete associated image files when a review is deleted (`src/app/admin/page.tsx`, added `DELETE` endpoint to `src/app/api/upload/route.ts`).
+
+## Environment Variable Loading Issue & Workaround
+
+During development, an issue was encountered where the Next.js development server was not consistently loading the `NEXT_PUBLIC_ADMIN_PASSWORD_HASH` environment variable from `.env.local` using standard methods (`process.env`).
+
+*   **Investigation:** Attempted to verify loading with `node -e "console.log(process.env.NEXT_PUBLIC_ADMIN_PASSWORD_HASH)"`, added `@next/env` to `next.config.ts`, and used `dotenv` in the `dev` script in `package.json`. These attempts did not resolve the issue of the variable being `undefined` at runtime.
+*   **Workaround:** As a temporary solution, the authentication route (`src/app/api/auth/route.ts`) was modified to directly read and parse the `.env.local` file to retrieve the `NEXT_PUBLIC_ADMIN_PASSWORD_HASH`. This successfully enabled authentication.
+*   **Note:** This direct file reading is **not recommended for production** and the root cause of the environment variable loading issue in this specific environment should be investigated for a proper long-term fix.
+*   **Related Fix:** Resolved an error encountered when running `pnpm dev` after attempting to use `dotenv` in the `dev` script by reverting the script to its original state.
+
 ## How to Run the Application
 
 1.  **Install dependencies:** `pnpm install`
 2.  **Start the development server:** `pnpm dev`
 3.  **Access the application:** Open your browser and navigate to `http://localhost:3000`
 4.  **Admin Login:** Navigate to `http://localhost:3000/admin` and use the password `admin`.
+
+## Design Polish & User Experience Improvements (Part 2)
+
+This section details the design and user experience enhancements implemented in the second part of the Fair Game Price Index development.
+
+1.  **Site-wide Navigation:**
+    *   Created a new `Header` component (`src/components/Header.tsx`) with site title and navigation links (Home, All Reviews).
+    *   Created a `Layout` wrapper component (`src/components/Layout.tsx`) to include the `Header` and provide consistent page structure and spacing.
+    *   Integrated the `Layout` component into the root layout (`src/app/layout.tsx`) to ensure the header is present on all public pages.
+
+2.  **Fair Price Badge Redesign:**
+    *   Refactored the `FairPriceBadge` component (`src/components/FairPriceBadge.tsx`) to display either the monetary amount (for Premium, Standard, Budget tiers) or the tier name (for non-monetary tiers), removing redundancy.
+    *   Implemented size variants (sm, md, lg) for the badge.
+    *   Ensured consistent use of defined Tailwind color classes for tiers.
+
+3.  **Review Card Improvements:**
+    *   Enhanced the `ReviewCard` component (`src/components/ReviewCard.tsx`) with improved image aspect ratio (`aspect-video`), a subtle hover scale effect on the image, refined typography hierarchy, and consistent spacing.
+    *   Used the 'sm' size for the `FairPriceBadge` within the review cards.
+
+4.  **Homepage Improvements:**
+    *   Redesigned the Homepage (`src/app/page.tsx`) to include a more prominent hero section with a clear value proposition and a call-to-action button linking to the All Reviews page.
+    *   Updated the featured reviews grid to display up to 6 latest reviews in a responsive 2x3 or 3x2 layout using the enhanced `ReviewCard` component.
+
+5.  **Reviews List Page Enhancements:**
+    *   Converted the Reviews List page (`src/app/reviews/page.tsx`) to a client component to manage filtering state.
+    *   Implemented fetching of all reviews within a `useEffect` hook.
+    *   Added filter buttons for each price tier, allowing users to filter the review list.
+    *   Integrated loading, error, and empty states using newly created UI components (`LoadingSpinner`, `ErrorMessage`, `EmptyState`).
+    *   Improved the grid layout for the review list to a responsive 1, 2, 3, or 4 column layout.
+
+6.  **Individual Review Page Polish:**
+    *   Polished the Individual Review Page (`src/app/reviews/[slug]/page.tsx`) with adjusted Tailwind typography classes for headings and body text, refined margins and padding for better spacing, and a "Back to All Reviews" link at the top of the page.
+    *   Used the 'lg' size for the `FairPriceBadge` on the individual review page for prominence.
+    *   Resolved a TypeScript error related to the back navigation link by using the arrow character (`←`).
+
+7.  **Loading, Error, and Empty State Components:**
+    *   Created reusable `LoadingSpinner.tsx`, `ErrorMessage.tsx`, and `EmptyState.tsx` components in `src/components/ui/` to provide visual feedback during data fetching and for empty states.
+
+These changes significantly improve the visual design, navigation, and overall user experience of the public-facing parts of the Fair Game Price Index website, while maintaining the minimalist aesthetic and focusing on content hierarchy.
