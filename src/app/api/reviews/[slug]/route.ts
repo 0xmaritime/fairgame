@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getReviewBySlug, saveReview, deleteReview, generateSlug } from '../../../../lib/reviews';
+import { getReviewBySlug, saveReview, deleteReview, generateSlug } from '../lib/reviews';
 import { GameReview } from '../../../../types/game-review';
 
 export async function GET(request: Request, context: { params: { slug: string } }) {

@@ -1,10 +1,51 @@
-import { getAllReviews } from '@/lib/reviews';
 import ReviewCard from '@/components/ReviewCard';
 import Link from 'next/link';
+import type { Metadata } from 'next'; // Import Metadata type
+import { GameReview } from '@/types/game-review';
+
+async function fetchReviews() {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/reviews`);
+  if (!res.ok) {
+    throw new Error('Failed to fetch reviews');
+  }
+  return res.json();
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { reviews } = await fetchReviews();
+  const totalReviews = reviews.length;
+  const latestReviewTitle = totalReviews > 0 ? reviews[0].title : 'latest game reviews';
+
+  return {
+    title: 'Fair Game Price Index',
+    description: `Find fair prices for games with our reviews. We have ${totalReviews} reviews, including the latest on ${latestReviewTitle}.`,
+    // Add Open Graph tags if needed
+    openGraph: {
+      title: 'Fair Game Price Index',
+      description: `Find fair prices for games with our reviews. We have ${totalReviews} reviews, including the latest on ${latestReviewTitle}.`,
+      url: process.env.NEXT_PUBLIC_BASE_URL || 'https://yourwebsite.com', // Replace with your actual website URL
+      siteName: 'Fair Game Price Index',
+      type: 'website',
+      // Add images if available
+      // images: [
+      //   {
+      //     url: 'https://yourwebsite.com/og-image.jpg', // Replace with your actual OG image URL
+      //     width: 800,
+      //     height: 600,
+      //     alt: 'Fair Game Price Index',
+      //   },
+      // ],
+    },
+    alternates: {
+      canonical: process.env.NEXT_PUBLIC_BASE_URL || 'https://yourwebsite.com', // Add canonical URL using alternates
+    },
+  };
+}
+
 
 export default async function Home() {
-  const reviews = await getAllReviews();
-  const featuredReviews = reviews.slice(0, 6); // Get up to 6 most recent reviews
+  const { reviews } = await fetchReviews();
+  const featuredReviews = reviews.filter((review: GameReview) => review.status === 'published').slice(0, 6); // Get up to 6 most recent published reviews
 
   return (
     <>
@@ -26,7 +67,7 @@ export default async function Home() {
         <section className="py-12 md:py-16">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Featured Reviews</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"> {/* 2x3 or 3x2 layout */}
-            {featuredReviews.map((review) => (
+            {featuredReviews.map((review: GameReview) => (
               <ReviewCard key={review.slug} review={review} />
             ))}
           </div>

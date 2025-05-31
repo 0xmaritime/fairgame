@@ -4,7 +4,8 @@ import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { GameReview } from '@/types/game-review';
 import FairPriceBadge from './FairPriceBadge';
-import TextareaAutosize from 'react-textarea-autosize'; // Keep for quickVerdict and reviewContent
+import TextareaAutosize from 'react-textarea-autosize'; // Keep for quickVerdict
+import ReviewTemplateSelector from './ReviewTemplateSelector'; // Import ReviewTemplateSelector
 
 interface ReviewFormProps {
   initialData?: GameReview;
@@ -28,12 +29,20 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
     fairPriceTier: 'Standard',
     fairPriceAmount: undefined,
     quickVerdict: '',
-    reviewContent: '',
+    content: '', // Renamed from reviewContent
     featuredImage: '',
     youtubeVideoId: '',
     pros: [''], // Initialize with one empty field
     cons: [''], // Initialize with one empty field
+    status: 'draft', // Default status
+    scheduledPublishAt: undefined,
+    viewCount: 0,
+    lastModifiedBy: undefined,
   });
+  const [publishOption, setPublishOption] = useState<'now' | 'schedule'>(initialData?.status === 'scheduled' ? 'schedule' : 'now');
+  const [scheduledDateTime, setScheduledDateTime] = useState<string>(
+    initialData?.scheduledPublishAt ? new Date(initialData.scheduledPublishAt).toISOString().slice(0, 16) : '' // Format for datetime-local input
+  );
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(initialData?.featuredImage ? `/uploads/${initialData.featuredImage}` : null);
   const [loading, setLoading] = useState(false);
@@ -46,8 +55,14 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
         ...initialData,
         pros: initialData.pros && initialData.pros.length > 0 ? initialData.pros : [''],
         cons: initialData.cons && initialData.cons.length > 0 ? initialData.cons : [''],
+        status: initialData.status || 'draft',
+        scheduledPublishAt: initialData.scheduledPublishAt,
+        viewCount: initialData.viewCount || 0,
+        lastModifiedBy: initialData.lastModifiedBy,
       });
       setImagePreview(initialData.featuredImage ? `/uploads/${initialData.featuredImage}` : null);
+      setPublishOption(initialData.status === 'scheduled' ? 'schedule' : 'now');
+      setScheduledDateTime(initialData.scheduledPublishAt ? new Date(initialData.scheduledPublishAt).toISOString().slice(0, 16) : '');
     }
   }, [initialData]);
 
@@ -132,18 +147,42 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
         return;
       }
 
-      const reviewToSave: GameReview = {
+      const reviewToSave: Partial<GameReview> = {
         ...formData,
-        id: formData.id || '', // Will be generated on POST if new
-        slug: formData.slug || '', // Will be generated on POST if new
-        publishedAt: formData.publishedAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        featuredImage: uploadedFilename || '',
+        id: formData.id || undefined, // Will be generated on POST if new
+        slug: formData.slug || undefined, // Will be generated on POST if new
+        // publishedAt and updatedAt will be handled by the API based on status
+        featuredImage: uploadedFilename || formData.featuredImage || '', // Use uploaded, existing, or empty
         fairPriceAmount: formData.fairPriceAmount ? Number(formData.fairPriceAmount) : undefined,
         // Filter out empty strings from pros/cons arrays before saving
         pros: (formData.pros || []).filter(item => item.trim() !== ''),
         cons: (formData.cons || []).filter(item => item.trim() !== ''),
-      } as GameReview; // Cast to GameReview, ID and slug will be handled by API
+        viewCount: formData.viewCount || 0,
+        lastModifiedBy: formData.lastModifiedBy,
+      };
+
+      // Handle scheduling logic
+      if (publishOption === 'now') {
+        reviewToSave.status = 'published';
+        reviewToSave.publishedAt = new Date().toISOString();
+        reviewToSave.scheduledPublishAt = undefined; // Clear scheduled date if publishing now
+      } else { // schedule
+        if (!scheduledDateTime) {
+            setError('Please select a date and time to schedule the review.');
+            setLoading(false);
+            return;
+        }
+        const scheduledDate = new Date(scheduledDateTime);
+        if (scheduledDate < new Date()) {
+             setError('Scheduled date and time must be in the future.');
+             setLoading(false);
+             return;
+        }
+        reviewToSave.status = 'scheduled';
+        reviewToSave.scheduledPublishAt = scheduledDate.toISOString();
+        reviewToSave.publishedAt = undefined; // Clear published date if scheduled
+      }
+      reviewToSave.updatedAt = new Date().toISOString(); // Always update updatedAt
 
       const method = initialData ? 'PUT' : 'POST';
       const url = initialData ? `/api/reviews/${initialData.slug}` : '/api/reviews';
@@ -172,6 +211,13 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTemplateSelect = (templateData: any) => {
+    setFormData(prev => ({
+      ...prev,
+      ...templateData,
+    }));
   };
 
   return (
@@ -258,11 +304,11 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
       </div>
 
       <div className="mb-4">
-        <label htmlFor="reviewContent" className="block text-gray-700 text-sm font-bold mb-2">Review Content (Markdown):</label>
+        <label htmlFor="content" className="block text-gray-700 text-sm font-bold mb-2">Review Content (Markdown):</label>
         <textarea
-          id="reviewContent"
-          name="reviewContent"
-          value={formData.reviewContent || ''}
+          id="content"
+          name="content"
+          value={formData.content || ''}
           onChange={handleChange}
           rows={10}
           className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline resize-y"
@@ -300,6 +346,56 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
         />
       </div>
 
+      {/* Template Selector */}
+      <div className="mb-4">
+        <ReviewTemplateSelector onTemplateSelect={handleTemplateSelect} />
+      </div>
+
+
+      {/* Publish Options */}
+      <div className="mb-4">
+        <label className="block text-gray-700 text-sm font-bold mb-2">Publish Options:</label>
+        <div className="flex items-center mb-2">
+          <input
+            type="radio"
+            id="publishNow"
+            name="publishOption"
+            value="now"
+            checked={publishOption === 'now'}
+            onChange={() => setPublishOption('now')}
+            className="mr-2"
+          />
+          <label htmlFor="publishNow">Publish Now</label>
+        </div>
+        <div className="flex items-center mb-2">
+          <input
+            type="radio"
+            id="scheduleForLater"
+            name="publishOption"
+            value="schedule"
+            checked={publishOption === 'schedule'}
+            onChange={() => setPublishOption('schedule')}
+            className="mr-2"
+          />
+          <label htmlFor="scheduleForLater">Schedule for Later</label>
+        </div>
+
+        {publishOption === 'schedule' && (
+          <div className="mt-2 pl-4">
+            <label htmlFor="scheduledPublishAt" className="block text-gray-700 text-sm font-bold mb-2">Schedule Date and Time:</label>
+            <input
+              type="datetime-local"
+              id="scheduledPublishAt"
+              value={scheduledDateTime}
+              onChange={(e) => setScheduledDateTime(e.target.value)}
+              className="shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+              required={publishOption === 'schedule'}
+            />
+          </div>
+        )}
+      </div>
+
+
       <div className="mb-4">
         <label className="block text-gray-700 text-sm font-bold mb-2">Pros:</label>
         {formData.pros?.map((pro, index) => (
@@ -314,7 +410,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
             <button
               type="button"
               onClick={() => handleRemoveArrayItem('pros', index)}
-              className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
+              className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm"
             >
               -
             </button>
@@ -323,7 +419,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
         <button
           type="button"
           onClick={() => handleAddArrayItem('pros')}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm mt-2"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm mt-2"
         >
           + Add Pro
         </button>
@@ -343,7 +439,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
             <button
               type="button"
               onClick={() => handleRemoveArrayItem('cons', index)}
-              className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 rounded text-sm"
+              className="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-3 rounded text-sm"
             >
               -
             </button>
@@ -352,7 +448,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ initialData }) => {
         <button
           type="button"
           onClick={() => handleAddArrayItem('cons')}
-          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded text-sm mt-2"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm mt-2"
         >
           + Add Con
         </button>

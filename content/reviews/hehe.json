@@ -1,0 +1,24 @@
+{
+  "id": "0e0e5779-1729-44d2-a78e-94f1625d9b0f",
+  "title": "Hehe",
+  "slug": "hehe",
+  "gameTitle": "hehehe",
+  "fairPriceTier": "Premium",
+  "fairPriceAmount": 25,
+  "quickVerdict": "Do not play this",
+  "content": "iabsfjbdajgbierg",
+  "featuredImage": "5573131a-f402-48f0-b3f2-304d90fbe27c.png",
+  "youtubeVideoId": "yt link",
+  "pros": [
+    "Interesting characters",
+    "Lots of content",
+    "Racism"
+  ],
+  "cons": [
+    "Grindy gameplay",
+    "Poor performance"
+  ],
+  "status": "draft",
+  "publishedAt": "2025-05-31T16:45:35.843Z",
+  "updatedAt": "2025-05-31T16:45:35.843Z"
+}
