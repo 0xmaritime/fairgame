@@ -19,79 +19,27 @@ interface ReviewCreateRequest {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const tiers = searchParams.get('tiers')?.split(',').filter(Boolean);
-    const minPrice = parseFloat(searchParams.get('minPrice') || '0');
-    const maxPrice = parseFloat(searchParams.get('maxPrice') || 'Infinity');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
-    const sortBy = searchParams.get('sortBy') || 'publishedAt_desc';
-    const page = parseInt(searchParams.get('page') || '1', 10);
-    const limit = parseInt(searchParams.get('limit') || '12', 10); // Default limit to 12 for pagination
-    const statusFilter = searchParams.get('status'); // Get status filter from query params
+    const tier = searchParams.get('tier');
+    const status = searchParams.get('status') || 'published';
 
     let reviews = await getAllReviews();
 
-    // Apply status filter conditionally
-    if (statusFilter && statusFilter !== 'all') {
-      reviews = reviews.filter(review => review.status === statusFilter);
-    } else if (!statusFilter) {
-      // Default to showing only published reviews if no status filter is provided
-      reviews = reviews.filter(review => review.status === 'published');
+    // Apply status filter
+    reviews = reviews.filter(review => review.status === status);
+
+    // Apply tier filter if specified
+    if (tier) {
+      reviews = reviews.filter(review => review.fairPriceTier === tier);
     }
 
-    // Apply other filters
-    if (tiers && tiers.length > 0) {
-      reviews = reviews.filter(review => tiers.includes(review.fairPriceTier));
-    }
+    // Sort by published date (newest first)
+    reviews.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
-    reviews = reviews.filter(review => {
-      const price = review.fairPriceAmount ?? 0; // Treat undefined price as 0 for filtering
-      return price >= minPrice && price <= maxPrice;
-    });
-
-    if (startDate) {
-      const start = new Date(startDate);
-      reviews = reviews.filter(review => new Date(review.publishedAt) >= start);
-    }
-
-    if (endDate) {
-      const end = new Date(endDate);
-      reviews = reviews.filter(review => new Date(review.publishedAt) <= end);
-    }
-
-    // Apply sorting
-    reviews.sort((a, b) => {
-      switch (sortBy) {
-        case 'publishedAt_asc':
-          return new Date(a.publishedAt).getTime() - new Date(b.publishedAt).getTime();
-        case 'fairPriceAmount_asc':
-          return (a.fairPriceAmount ?? 0) - (b.fairPriceAmount ?? 0);
-        case 'fairPriceAmount_desc':
-          return (b.fairPriceAmount ?? 0) - (a.fairPriceAmount ?? 0);
-        case 'title_asc':
-          return a.title.localeCompare(b.title);
-        case 'publishedAt_desc':
-        default:
-          return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-      }
-    });
-
-    // Implement pagination
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    const totalReviews = reviews.length;
-    const paginatedReviews = reviews.slice(startIndex, endIndex);
-
-    return NextResponse.json({
-      reviews: paginatedReviews,
-      total: totalReviews,
-      page,
-      limit,
-    });
+    return NextResponse.json({ reviews });
   } catch (error) {
     return NextResponse.json(
       {
-        message: 'Failed to fetch and filter reviews',
+        message: 'Failed to fetch reviews',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
@@ -120,7 +68,7 @@ export async function POST(request: Request) {
     // Validate field types and values
     const allowedTiers: GameReview['fairPriceTier'][] = [
       'Premium', 'Standard', 'Budget', 'Free-to-Play', 
-      'Wait-for-Sale', 'Never-Buy', 'Subscription-Only'
+      'Wait-for-Sale', 'Never-Buy'
     ];
     
     if (typeof body.title !== 'string' || 
@@ -159,7 +107,7 @@ export async function POST(request: Request) {
       youtubeVideoId: body.youtubeVideoId,
       pros: body.pros || [],
       cons: body.cons || [],
-      status: 'draft', // Default status for new reviews
+      status: 'draft',
       publishedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -180,56 +128,22 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json();
+    const { slug } = body;
+    const allReviews = await getAllReviews();
+    const reviewIndex = allReviews.findIndex(review => review.slug === slug);
 
-    if (body.ids && body.fairPriceTier) {
-      // Bulk tier change
-      const { ids, fairPriceTier } = body;
-
-      if (!Array.isArray(ids) || ids.length === 0) {
-        return NextResponse.json({ message: 'Invalid request: ids must be a non-empty array' }, { status: 400 });
-      }
-
-      if (!['Premium', 'Standard', 'Budget', 'Free-to-Play', 'Wait-for-Sale', 'Never-Buy', 'Subscription-Only'].includes(fairPriceTier)) {
-        return NextResponse.json({ message: 'Invalid request: fairPriceTier is not valid' }, { status: 400 });
-      }
-
-      const allReviews = await getAllReviews();
-      let updatedCount = 0;
-
-      for (const id of ids) {
-        const reviewIndex = allReviews.findIndex(review => review.id === id);
-        if (reviewIndex !== -1) {
-          allReviews[reviewIndex] = {
-            ...allReviews[reviewIndex],
-            fairPriceTier: fairPriceTier,
-            updatedAt: new Date().toISOString(),
-          };
-          await saveReview(allReviews[reviewIndex]);
-          updatedCount++;
-        }
-      }
-
-      return NextResponse.json({ message: `Successfully updated tier for ${updatedCount} reviews` });
-
-    } else {
-      // Single review update
-      const { slug } = body;
-      const allReviews = await getAllReviews();
-      const reviewIndex = allReviews.findIndex(review => review.slug === slug);
-
-      if (reviewIndex === -1) {
-        return NextResponse.json({ message: 'Review not found' }, { status: 404 });
-      }
-
-      const updatedReview: GameReview = {
-        ...allReviews[reviewIndex],
-        ...body,
-        updatedAt: new Date().toISOString(),
-      };
-
-      await saveReview(updatedReview);
-      return NextResponse.json(updatedReview);
+    if (reviewIndex === -1) {
+      return NextResponse.json({ message: 'Review not found' }, { status: 404 });
     }
+
+    const updatedReview: GameReview = {
+      ...allReviews[reviewIndex],
+      ...body,
+      updatedAt: new Date().toISOString(),
+    };
+
+    await saveReview(updatedReview);
+    return NextResponse.json(updatedReview);
   } catch (error) {
     return NextResponse.json(
       {
@@ -244,52 +158,23 @@ export async function PUT(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const body = await request.json();
+    const { id } = body;
 
-    if (body.ids && Array.isArray(body.ids)) {
-      // Bulk delete
-      const { ids } = body;
-      let allReviews = await getAllReviews();
-      let deletedCount = 0;
-
-      for (const id of ids) {
-        const reviewIndex = allReviews.findIndex(review => review.id === id);
-        if (reviewIndex !== -1) {
-          const reviewToDelete = allReviews[reviewIndex];
-          await saveReview({...reviewToDelete, status: 'draft'});
-          allReviews = allReviews.filter(review => review.id !== id);
-          deletedCount++;
-          // Delete the review file
-          // This assumes that the reviews are stored in individual files named after their IDs
-          // You might need to adjust the path based on your actual file structure
-          //const filePath = `./content/reviews/${reviewToDelete.slug}.json`;
-          // Delete the file
-          //fs.unlinkSync(filePath); // Synchronous operation
-        }
-      }
-      // Save the updated reviews
-      //fs.writeFileSync('./content/reviews.json', JSON.stringify(allReviews, null, 2));
-      return NextResponse.json({ message: `Successfully deleted ${deletedCount} reviews` });
-    } else {
-      // Single review delete
-      const { searchParams } = new URL(request.url);
-      const slug = searchParams.get('slug');
-
-      if (!slug) {
-        return NextResponse.json({ message: 'Missing slug parameter' }, { status: 400 });
-      }
-
-      let allReviews = await getAllReviews();
-      const initialLength = allReviews.length;
-      allReviews = allReviews.filter(review => review.slug !== slug);
-
-      if (allReviews.length === initialLength) {
-        return NextResponse.json({ message: 'Review not found' }, { status: 404 });
-      }
-
-      // Save the updated reviews
-      //fs.writeFileSync('./content/reviews.json', JSON.stringify(allReviews, null, 2));
-      return NextResponse.json({ message: 'Review deleted successfully' });
+    if (!id) {
+      return NextResponse.json({ message: 'Review ID is required' }, { status: 400 });
     }
+
+    const allReviews = await getAllReviews();
+    const reviewIndex = allReviews.findIndex(review => review.id === id);
+
+    if (reviewIndex === -1) {
+      return NextResponse.json({ message: 'Review not found' }, { status: 404 });
+    }
+
+    allReviews.splice(reviewIndex, 1);
+    await saveReview(allReviews[reviewIndex]);
+
+    return NextResponse.json({ message: 'Review deleted successfully' });
   } catch (error) {
     return NextResponse.json(
       {

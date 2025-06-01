@@ -3,24 +3,15 @@ export interface GameReview {
   title: string;
   slug: string;
   gameTitle: string;
-  fairPriceTier: 'Premium' | 'Standard' | 'Budget' | 'Free-to-Play' | 'Wait-for-Sale' | 'Never-Buy' | 'Subscription-Only';
+  fairPriceTier: 'Premium' | 'Standard' | 'Budget' | 'Free-to-Play' | 'Wait-for-Sale' | 'Never-Buy';
   fairPriceAmount?: number;
-  quickVerdict: string; // 300 char limit
-  content: string; // markdown - Renamed from reviewContent
-  featuredImage: string; // filename
+  quickVerdict: string;
+  content: string;
+  featuredImage: string;
   youtubeVideoId?: string;
-  publishedAt: string;
-  updatedAt: string;
   pros?: string[];
   cons?: string[];
-  status: 'draft' | 'scheduled' | 'published';
-  scheduledPublishAt?: string;
-  searchKeywords?: string[]; // For improved search
-  viewCount?: number; // For analytics
-  lastModifiedBy?: string; // Admin tracking
-  highlights?: {
-    title?: string;
-    gameTitle?: string;
-    content?: string;
-  };
+  publishedAt: string;
+  updatedAt: string;
+  status: 'draft' | 'published';
 }

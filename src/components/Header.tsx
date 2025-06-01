@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import React from 'react';
-import SearchBar from './SearchBar';
 
 const Header: React.FC = () => {
   return (
@@ -9,23 +8,14 @@ const Header: React.FC = () => {
         <Link href="/" className="text-xl font-bold text-gray-900">
           Fair Game Price Index
         </Link>
-        <nav className="hidden md:block flex items-center space-x-4">
-          <SearchBar />
-          <ul className="flex space-x-4">
-            <li>
-              <Link href="/" className="text-gray-600 hover:text-gray-900">
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link href="/reviews" className="text-gray-600 hover:text-gray-900">
-                All Reviews
-              </Link>
-            </li>
-            {/* About link can be added here later */}
-          </ul>
+        <nav className="flex items-center space-x-6">
+          <Link href="/" className="text-gray-600 hover:text-gray-900">
+            Home
+          </Link>
+          <Link href="/reviews" className="text-gray-600 hover:text-gray-900">
+            All Reviews
+          </Link>
         </nav>
-        {/* Mobile menu button can be added here later */}
       </div>
     </header>
   );

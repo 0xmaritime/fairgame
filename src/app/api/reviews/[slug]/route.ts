@@ -4,33 +4,40 @@ import { GameReview } from '../../../../types/game-review';
 
 export async function GET(request: Request, context: { params: { slug: string } }) {
   try {
-    const { slug } = await context.params; // Await params
+    const { slug } = context.params;
     const review = await getReviewBySlug(slug);
 
     if (!review) {
       return NextResponse.json({ message: 'Review not found' }, { status: 404 });
     }
+
+    // Only return published reviews for public access
+    if (review.status !== 'published') {
+      return NextResponse.json({ message: 'Review not found' }, { status: 404 });
+    }
+
     return NextResponse.json(review);
   } catch (error) {
-    console.error(`Failed to fetch review with slug ${context.params.slug}:`, error);
-    return NextResponse.json({ message: 'Failed to fetch review' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Failed to fetch review' },
+      { status: 500 }
+    );
   }
 }
 
 export async function PUT(request: Request, context: { params: { slug: string } }) {
   try {
-    const { slug } = await context.params; // Await params
+    const { slug } = context.params;
     const body = await request.json();
 
     // Basic validation
-    if (!body.title || !body.gameTitle || !body.fairPriceTier || !body.quickVerdict || !body.reviewContent || !body.featuredImage) {
+    if (!body.title || !body.gameTitle || !body.fairPriceTier || !body.quickVerdict || !body.content || !body.featuredImage) {
       return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
     }
 
     // Ensure slug consistency if title changes
     const newSlug = generateSlug(body.title);
     if (newSlug !== slug) {
-      // If slug changes, delete old file and save new one
       await deleteReview(slug);
     }
 
@@ -43,18 +50,22 @@ export async function PUT(request: Request, context: { params: { slug: string } 
     await saveReview(updatedReview);
     return NextResponse.json(updatedReview);
   } catch (error) {
-    console.error(`Failed to update review with slug ${context.params.slug}:`, error);
-    return NextResponse.json({ message: 'Failed to update review' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Failed to update review' },
+      { status: 500 }
+    );
   }
 }
 
 export async function DELETE(request: Request, context: { params: { slug: string } }) {
   try {
-    const { slug } = await context.params; // Await params
+    const { slug } = context.params;
     await deleteReview(slug);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error(`Failed to delete review with slug ${context.params.slug}:`, error);
-    return NextResponse.json({ message: 'Failed to delete review' }, { status: 500 });
+    return NextResponse.json(
+      { message: 'Failed to delete review' },
+      { status: 500 }
+    );
   }
 }
