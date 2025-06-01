@@ -8,6 +8,7 @@ export interface GameReview {
   quickVerdict: string;
   content: string;
   featuredImage: string;
+  featuredImagePathname?: string;
   youtubeVideoId?: string;
   pros?: string[];
   cons?: string[];

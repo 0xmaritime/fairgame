@@ -39,3 +39,21 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Ignore local uploads directory
+/public/uploads/
+
+# Add blob mappings (optional - you might want to commit this)
+blob-url-mappings.json
+
+# Node modules
+node_modules/
+
+# Build output
+.next/
+
+# Environment variables
+.env*
+
+# OS generated files
+.DS_Store

@@ -1,42 +1,5 @@
 import { NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-
-const uploadDirectory = path.join(process.cwd(), 'public', 'uploads');
-
-export async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const filename = searchParams.get('filename');
-    
-    if (!filename) {
-      return NextResponse.json(
-        { message: 'Filename parameter is required' },
-        { status: 400 }
-      );
-    }
-
-    const filePath = path.join(uploadDirectory, filename);
-    await fs.unlink(filePath);
-
-    return NextResponse.json(
-      { message: 'File deleted successfully' },
-      { status: 200 }
-    );
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      return NextResponse.json(
-        { message: 'File not found' },
-        { status: 404 }
-      );
-    }
-    return NextResponse.json(
-      { message: 'Failed to delete file' },
-      { status: 500 }
-    );
-  }
-}
+import { BlobStorageManager } from '@/lib/blob';
 
 export async function POST(request: Request) {
   try {
@@ -47,18 +10,66 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: 'No file uploaded' }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      return NextResponse.json(
+        { message: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' }, 
+        { status: 400 }
+      );
+    }
 
-    const fileExtension = path.extname(file.name);
-    const filename = `${uuidv4()}${fileExtension}`;
-    const filePath = path.join(uploadDirectory, filename);
+    // Validate file size (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { message: 'File too large. Maximum size is 10MB.' }, 
+        { status: 400 }
+      );
+    }
 
-    await fs.writeFile(filePath, buffer);
+    const result = await BlobStorageManager.uploadFile(file, 'reviews');
 
-    return NextResponse.json({ filename, url: `/uploads/${filename}` }, { status: 201 });
+    return NextResponse.json({
+      filename: result.filename,
+      url: result.url,
+      pathname: result.pathname,
+    }, { status: 201 });
+
   } catch (error) {
     console.error('Failed to upload image:', error);
-    return NextResponse.json({ message: 'Failed to upload image' }, { status: 500 });
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : 'Failed to upload image' }, 
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const url = searchParams.get('url');
+    const pathname = searchParams.get('pathname');
+    
+    if (!url && !pathname) {
+      return NextResponse.json(
+        { message: 'Either URL or pathname parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    const targetPathname = pathname || BlobStorageManager.getPathnameFromUrl(url!);
+    await BlobStorageManager.deleteFile(targetPathname);
+
+    return NextResponse.json(
+      { message: 'File deleted successfully' },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error('Failed to delete image:', error);
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : 'Failed to delete file' },
+      { status: 500 }
+    );
   }
 }

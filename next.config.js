@@ -2,10 +2,18 @@ const { loadEnvConfig } = require('@next/env');
 
 loadEnvConfig(process.cwd());
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
   images: {
-    domains: ['localhost'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.vercel-storage.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
 };
 
