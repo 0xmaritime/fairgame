@@ -3,45 +3,58 @@ import Link from 'next/link';
 import type { Metadata } from 'next'; // Import Metadata type
 import { GameReview } from '@/types/game-review';
 
+export const dynamic = 'force-dynamic';
+
 async function fetchReviews() {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/reviews`);
-  if (!res.ok) {
-    throw new Error('Failed to fetch reviews');
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/reviews`, { cache: 'no-store' });
+    if (!res.ok) {
+      throw new Error('Failed to fetch reviews');
+    }
+    return res.json();
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    return { reviews: [] };
   }
-  return res.json();
 }
 
 export async function generateMetadata(): Promise<Metadata> {
-  const { reviews } = await fetchReviews();
-  const totalReviews = reviews.length;
-  const latestReviewTitle = totalReviews > 0 ? reviews[0].title : 'latest game reviews';
+  try {
+    const { reviews } = await fetchReviews();
+    const totalReviews = reviews.length;
+    const latestReviewTitle = totalReviews > 0 ? reviews[0].title : 'latest game reviews';
 
-  return {
-    title: 'Fair Game Price Index',
-    description: `Find fair prices for games with our reviews. We have ${totalReviews} reviews, including the latest on ${latestReviewTitle}.`,
-    // Add Open Graph tags if needed
-    openGraph: {
+    return {
       title: 'Fair Game Price Index',
       description: `Find fair prices for games with our reviews. We have ${totalReviews} reviews, including the latest on ${latestReviewTitle}.`,
-      url: process.env.NEXT_PUBLIC_BASE_URL || 'https://yourwebsite.com', // Replace with your actual website URL
-      siteName: 'Fair Game Price Index',
-      type: 'website',
-      // Add images if available
-      // images: [
-      //   {
-      //     url: 'https://yourwebsite.com/og-image.jpg', // Replace with your actual OG image URL
-      //     width: 800,
-      //     height: 600,
-      //     alt: 'Fair Game Price Index',
-      //   },
-      // ],
-    },
-    alternates: {
-      canonical: process.env.NEXT_PUBLIC_BASE_URL || 'https://yourwebsite.com', // Add canonical URL using alternates
-    },
-  };
+      // Add Open Graph tags if needed
+      openGraph: {
+        title: 'Fair Game Price Index',
+        description: `Find fair prices for games with our reviews. We have ${totalReviews} reviews, including the latest on ${latestReviewTitle}.`,
+        url: process.env.NEXT_PUBLIC_BASE_URL || 'https://yourwebsite.com', // Replace with your actual website URL
+        siteName: 'Fair Game Price Index',
+        type: 'website',
+        // Add images if available
+        // images: [
+        //   {
+        //     url: 'https://yourwebsite.com/og-image.jpg', // Replace with your actual OG image URL
+        //     width: 800,
+        //     height: 600,
+        //     alt: 'Fair Game Price Index',
+        //   },
+        // ],
+      },
+      alternates: {
+        canonical: process.env.NEXT_PUBLIC_BASE_URL || 'https://yourwebsite.com', // Add canonical URL using alternates
+      },
+    };
+  } catch (error) {
+    return {
+      title: 'Fair Game Price Index',
+      description: 'Find fair prices for games with our reviews.',
+    };
+  }
 }
-
 
 export default async function Home() {
   const { reviews } = await fetchReviews();
@@ -63,13 +76,22 @@ export default async function Home() {
       </section>
 
       {/* Featured Reviews Grid */}
-      {featuredReviews.length > 0 && (
+      {featuredReviews.length > 0 ? (
         <section className="py-12 md:py-16">
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">Featured Reviews</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"> {/* 2x3 or 3x2 layout */}
             {featuredReviews.map((review: GameReview) => (
               <ReviewCard key={review.slug} review={review} />
             ))}
+          </div>
+        </section>
+      ) : (
+        <section className="py-12 md:py-16">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">No Reviews Available</h2>
+            <p className="text-lg text-gray-700 mb-4">
+              We're currently updating our review database. Please check back soon!
+            </p>
           </div>
         </section>
       )}

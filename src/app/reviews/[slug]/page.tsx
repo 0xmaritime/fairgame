@@ -7,7 +7,6 @@ import FairPriceBadge from '@/components/FairPriceBadge';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 import Markdown from 'react-markdown';
 import Link from 'next/link';
-import RelatedReviews from '@/components/RelatedReviews';
 import { ChevronRight } from 'lucide-react';
 
 interface ReviewPageProps {
@@ -15,7 +14,6 @@ interface ReviewPageProps {
     slug: string;
   };
 }
-
 
 export default function ReviewPage({ params }: ReviewPageProps) {
   const { slug } = params;
@@ -182,70 +180,46 @@ export default function ReviewPage({ params }: ReviewPageProps) {
       )}
 
       {(review.cons && review.cons.length > 0) && (
-        <div className="mb-8"> {/* Adjusted spacing */}
-          <h2 className="text-2xl font-semibold mb-3 text-red-700">Cons:</h2> {/* Adjusted spacing */}
-          <ul className="list-disc list-inside text-lg text-red-600 space-y-2"> {/* Adjusted spacing */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-semibold mb-3 text-red-700">Cons:</h2>
+          <ul className="list-disc list-inside text-lg text-red-600 space-y-2">
             {review.cons.map((con, index) => (
               <li key={index}>{con}</li>
-        ))}
-      </ul>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Social Sharing Buttons */}
+      <div className="mt-8 border-t pt-4 flex items-center space-x-4">
+        <span className="text-gray-600">Share:</span>
+        <a
+          href={`https://twitter.com/intent/tweet?url=${process.env.NEXT_PUBLIC_BASE_URL}/reviews/${review.slug}&text=${encodeURIComponent(review.title)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-500 hover:text-blue-700"
+        >
+          Twitter
+        </a>
+        <a
+          href={`https://www.facebook.com/sharer/sharer.php?u=${process.env.NEXT_PUBLIC_BASE_URL}/reviews/${review.slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-800 hover:text-blue-900"
+        >
+          Facebook
+        </a>
+      </div>
+
+      {/* View Count Tracking */}
+      <div className="text-sm text-gray-500 mt-4">
+        <p>Views: {review.viewCount ?? 0}</p>
+      </div>
+
+      <div className="text-sm text-gray-500 mt-8 border-t pt-4">
+        <p>Published: {new Date(review.publishedAt).toLocaleDateString()}</p>
+        <p>Last Updated: {new Date(review.updatedAt).toLocaleDateString()}</p>
+      </div>
     </div>
-  )}
-
-  {/* Related Reviews Section */}
-  <RelatedReviews currentReviewSlug={review.slug} />
-
-  {/* Social Sharing Buttons */}
-  <div className="mt-8 border-t pt-4 flex items-center space-x-4">
-    <span className="text-gray-600">Share:</span>
-    <a
-      href={`https://twitter.com/intent/tweet?url=${process.env.NEXT_PUBLIC_BASE_URL}/reviews/${review.slug}&text=${encodeURIComponent(review.title)}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-blue-500 hover:text-blue-700"
-    >
-      Twitter
-    </a>
-    <a
-      href={`https://www.facebook.com/sharer/sharer.php?u=${process.env.NEXT_PUBLIC_BASE_URL}/reviews/${review.slug}`}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-blue-800 hover:text-blue-900"
-    >
-      Facebook
-    </a>
-  </div>
-
-  {/* View Count Tracking */}
-  <div className="text-sm text-gray-500 mt-4">
-    <p>Views: {review.viewCount ?? 0}</p>
-  </div>
-
-  <div className="text-sm text-gray-500 mt-8 border-t pt-4">
-    <p>Published: {new Date(review.publishedAt).toLocaleDateString()}</p>
-    <p>Last Updated: {new Date(review.updatedAt).toLocaleDateString()}</p>
-  </div>
-</div>
   );
 }
-
-// Client-side component to handle view count increment
-const ViewTracker: React.FC<{ slug: string }> = ({ slug }) => {
-  useEffect(() => {
-    const incrementViewCount = async () => {
-      try {
-        await fetch(`/api/reviews/${slug}/view`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-      } catch (error) {
-        console.error('Failed to increment view count:', error);
-      }
-    };
-    incrementViewCount();
-  }, [slug]); // Depend on slug to re-run if slug changes (e.g., navigating between reviews)
-
-  return null; // This component doesn't render anything
-};

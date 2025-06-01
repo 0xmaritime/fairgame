@@ -3,7 +3,7 @@ export interface GameReview {
   title: string;
   slug: string;
   gameTitle: string;
-  fairPriceTier: 'Premium' | 'Standard' | 'Budget' | 'Free-to-Play' | 'Wait-for-Sale' | 'Never-Buy';
+  fairPriceTier: 'Premium' | 'Standard' | 'Budget' | 'Free-to-Play' | 'Wait-for-Sale' | 'Never-Buy' | 'Subscription-Only';
   fairPriceAmount?: number;
   quickVerdict: string;
   content: string;
@@ -14,4 +14,6 @@ export interface GameReview {
   publishedAt: string;
   updatedAt: string;
   status: 'draft' | 'published';
+  lastModifiedBy?: string;
+  viewCount?: number;
 }
