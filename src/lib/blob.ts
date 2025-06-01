@@ -92,4 +92,31 @@ export class BlobStorageManager {
       throw new Error('Invalid blob URL provided');
     }
   }
+}
+
+export async function uploadToBlob(file: File, pathname: string) {
+  try {
+    const blob = await put(pathname, file, {
+      access: 'public',
+    });
+    return blob;
+  } catch (error) {
+    console.error('Error uploading to blob:', error);
+    throw error;
+  }
+}
+
+export async function deleteFromBlob(url: string) {
+  try {
+    await del(url);
+  } catch (error) {
+    console.error('Error deleting from blob:', error);
+    throw error;
+  }
+}
+
+export function generateBlobPathname(filename: string, prefix: string = 'reviews') {
+  const timestamp = Date.now();
+  const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, '_');
+  return `${prefix}/${timestamp}-${sanitizedFilename}`;
 } 

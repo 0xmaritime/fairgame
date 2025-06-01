@@ -2,28 +2,25 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import AdminLayout from '@/components/AdminLayout';
 import ReviewForm from '@/components/ReviewForm';
 import { GameReview } from '@/types/game-review';
 
 export default function ClientEditReviewPage({ slug }: { slug: string }) {
   const router = useRouter();
-  const [authenticated, setAuthenticated] = useState(false);
-  const [loadingAuth, setLoadingAuth] = useState(true);
+  const { data: session, status } = useSession();
   const [review, setReview] = useState<GameReview | null>(null);
   const [loadingReview, setLoadingReview] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedAuth = localStorage.getItem('adminAuthenticated');
-    if (storedAuth === 'true') {
-      setAuthenticated(true);
+    if (status === 'authenticated') {
       fetchReview();
-    } else {
-      setLoadingAuth(false);
-      router.push('/admin'); // Redirect to login if not authenticated
+    } else if (status === 'unauthenticated') {
+      router.push('/admin');
     }
-  }, []);
+  }, [status, slug]);
 
   const fetchReview = async () => {
     setLoadingReview(true);
@@ -32,7 +29,7 @@ export default function ClientEditReviewPage({ slug }: { slug: string }) {
       const res = await fetch(`/api/reviews/${slug}`, { cache: 'no-store' });
       if (!res.ok) {
         if (res.status === 404) {
-          router.push('/admin'); // Redirect to dashboard if review not found
+          router.push('/admin');
           return;
         }
         throw new Error('Failed to fetch review');
@@ -43,16 +40,36 @@ export default function ClientEditReviewPage({ slug }: { slug: string }) {
       setError(err instanceof Error ? err.message : 'Failed to fetch review');
     } finally {
       setLoadingReview(false);
-      setLoadingAuth(false); // Auth check is done after review fetch
     }
   };
 
-  if (loadingAuth || loadingReview) {
+  const handleSubmit = async (data: any) => {
+    try {
+      const response = await fetch(`/api/reviews/${slug}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update review');
+      }
+
+      router.push('/admin/reviews');
+    } catch (error) {
+      console.error('Error updating review:', error);
+      throw error;
+    }
+  };
+
+  if (status === 'loading' || loadingReview) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  if (!authenticated) {
-    return null; // Already redirected by router.push
+  if (!session) {
+    return null;
   }
 
   if (error) {
@@ -75,7 +92,7 @@ export default function ClientEditReviewPage({ slug }: { slug: string }) {
 
   return (
     <AdminLayout>
-      <ReviewForm initialData={review} />
+      <ReviewForm initialData={review} onSubmit={handleSubmit} />
     </AdminLayout>
   );
 } 

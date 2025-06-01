@@ -1,4 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Fair Game Reviews
+
+A platform for reviewing games with a focus on fair pricing.
+
+## Features
+
+- Game reviews with fair price recommendations
+- Admin dashboard for managing reviews
+- Secure authentication
+- Responsive design
+
+## Setup
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Set up environment variables:
+Create a `.env.local` file with:
+```
+DATABASE_URL="file:./dev.db"
+NEXTAUTH_SECRET="your-secret-key"
+ADMIN_EMAIL="your-admin-email"
+ADMIN_PASSWORD="your-admin-password"
+```
+
+3. Initialize the database:
+```bash
+npx prisma migrate reset
+```
+
+4. Start the development server:
+```bash
+npm run dev
+```
+
+## Development
+
+- Built with Next.js 14
+- Uses Prisma for database management
+- Implements secure password hashing using SHA-256
+- Uses SQLite for development (can be changed to PostgreSQL for production)
+
+## License
+
+MIT
 
 ## Getting Started
 

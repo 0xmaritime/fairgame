@@ -1,47 +1,32 @@
 import { NextResponse } from 'next/server';
-import { BlobStorageManager } from '@/lib/blob';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { uploadToBlob, generateBlobPathname, BlobStorageManager } from '@/lib/blob';
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
-
+    
     if (!file) {
-      return NextResponse.json({ message: 'No file uploaded' }, { status: 400 });
+      return new NextResponse('No file provided', { status: 400 });
     }
 
-    // Validate file type
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
-    if (!validTypes.includes(file.type)) {
-      return NextResponse.json(
-        { message: 'Invalid file type. Only JPEG, PNG, WebP, and GIF are allowed.' }, 
-        { status: 400 }
-      );
-    }
-
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { message: 'File too large. Maximum size is 10MB.' }, 
-        { status: 400 }
-      );
-    }
-
-    const result = await BlobStorageManager.uploadFile(file, 'reviews');
+    const pathname = generateBlobPathname(file.name);
+    const blob = await uploadToBlob(file, pathname);
 
     return NextResponse.json({
-      filename: result.filename,
-      url: result.url,
-      pathname: result.pathname,
-    }, { status: 201 });
-
+      url: blob.url,
+      pathname: blob.pathname,
+    });
   } catch (error) {
-    console.error('Failed to upload image:', error);
-    return NextResponse.json(
-      { message: error instanceof Error ? error.message : 'Failed to upload image' }, 
-      { status: 500 }
-    );
+    console.error('Error uploading file:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 

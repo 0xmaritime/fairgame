@@ -1,64 +1,30 @@
 import { NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { hashPassword, verifyPassword } from '@/lib/password';
 
-interface AuthRequest {
-  password: string;
-}
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@example.com';
+const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || hashPassword('admin');
 
 export async function POST(request: Request) {
   try {
-    const { password }: AuthRequest = await request.json();
+    const { email, password } = await request.json();
 
-    // Read .env.local directly for testing purposes
-    const envFilePath = path.join(process.cwd(), '.env.local');
-    let adminPasswordHash = undefined;
-
-    try {
-      const envFileContent = await fs.readFile(envFilePath, 'utf-8');
-      const lines = envFileContent.split('\n');
-      for (const line of lines) {
-        const trimmedLine = line.trim();
-        if (trimmedLine.startsWith('NEXT_PUBLIC_ADMIN_PASSWORD_HASH=')) {
-          adminPasswordHash = trimmedLine.substring('NEXT_PUBLIC_ADMIN_PASSWORD_HASH='.length);
-          break;
-        }
-      }
-    } catch (error) {
-      console.error('Error reading .env.local:', error);
-      return NextResponse.json(
-        { message: 'Server configuration error: Could not read environment file' },
-        { status: 500 }
-      );
+    if (!email || !password) {
+      return new NextResponse('Missing credentials', { status: 400 });
     }
 
-
-    if (!adminPasswordHash) {
-      return NextResponse.json(
-        { message: 'Server configuration error: ADMIN_PASSWORD_HASH not found in environment file' },
-        { status: 500 }
-      );
+    if (email !== ADMIN_EMAIL) {
+      return new NextResponse('Invalid credentials', { status: 401 });
     }
 
-    const isMatch = await bcrypt.compare(password, adminPasswordHash);
+    const isMatch = verifyPassword(password, ADMIN_PASSWORD_HASH);
 
-    if (isMatch) {
-      return NextResponse.json(
-        { authenticated: true },
-        { status: 200 }
-      );
-    } else {
-      return NextResponse.json(
-        { authenticated: false, message: 'Invalid credentials' },
-        { status: 401 }
-      );
+    if (!isMatch) {
+      return new NextResponse('Invalid credentials', { status: 401 });
     }
+
+    return new NextResponse('Authentication successful', { status: 200 });
   } catch (error) {
     console.error('Authentication error:', error);
-    return NextResponse.json(
-      { message: 'Authentication failed' },
-      { status: 500 }
-    );
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

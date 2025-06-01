@@ -9,3 +9,14 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
+
+/* Price tier colors */
+@layer utilities {
+  .bg-price-premium { background-color: #10b981; }
+  .bg-price-standard { background-color: #3b82f6; }
+  .bg-price-budget { background-color: #f59e0b; }
+  .bg-price-free-play { background-color: #ef4444; }
+  .bg-price-wait-sale { background-color: #6b7280; }
+  .bg-price-never-buy { background-color: #374151; }
+  .bg-price-subscription { background-color: #8b5cf6; }
+}

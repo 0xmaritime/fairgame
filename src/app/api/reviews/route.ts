@@ -1,187 +1,186 @@
 import { NextResponse } from 'next/server';
-import { getAllReviews, saveReview, generateSlug } from './lib/reviews';
-import { GameReview } from '../../../types/game-review';
-import { v4 as uuidv4 } from 'uuid';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import prisma from '@/lib/prisma';
 
-interface ReviewCreateRequest {
-  title: string;
-  gameTitle: string;
-  fairPriceTier: GameReview['fairPriceTier'];
-  fairPriceAmount?: number;
-  quickVerdict: string;
-  content: string;
-  featuredImage: string;
-  youtubeVideoId?: string;
-  pros?: string[];
-  cons?: string[];
+// Slugify helper
+function slugify(text: string) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const tier = searchParams.get('tier');
-    const status = searchParams.get('status') || 'published';
-
-    let reviews = await getAllReviews();
-
-    // Apply status filter
-    reviews = reviews.filter(review => review.status === status);
-
-    // Apply tier filter if specified
-    if (tier) {
-      reviews = reviews.filter(review => review.fairPriceTier === tier);
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Sort by published date (newest first)
-    reviews.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const status = searchParams.get('status');
+    const search = searchParams.get('search');
 
-    return NextResponse.json({ reviews });
+    const where = {
+      ...(status && status !== 'all' ? { status } : {}),
+      ...(search
+        ? {
+            OR: [
+              { title: { contains: search, mode: 'insensitive' } },
+              { gameTitle: { contains: search, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [reviews, total] = await Promise.all([
+      prisma.review.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.review.count({ where }),
+    ]);
+
+    // Convert pros and cons from string to array
+    const reviewsWithArrays = reviews.map((review: any) => ({
+      ...review,
+      pros: review.pros ? review.pros.split('\n').filter(Boolean) : [],
+      cons: review.cons ? review.cons.split('\n').filter(Boolean) : [],
+    }));
+
+    return NextResponse.json({
+      reviews: reviewsWithArrays,
+      total,
+      hasMore: total > page * limit,
+    });
   } catch (error) {
-    return NextResponse.json(
-      {
-        message: 'Failed to fetch reviews',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    console.error('Error fetching reviews:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const body: Partial<ReviewCreateRequest> = await request.json();
-
-    // Validate required fields
-    const requiredFields: (keyof ReviewCreateRequest)[] = ['title', 'gameTitle', 'fairPriceTier', 'quickVerdict', 'content', 'featuredImage'];
-    const missingFields = requiredFields.filter(field => !body[field]);
-    
-    if (missingFields.length > 0) {
-      return NextResponse.json(
-        { 
-          message: 'Missing required fields',
-          missingFields 
-        }, 
-        { status: 400 }
-      );
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    // Validate field types and values
-    const allowedTiers: GameReview['fairPriceTier'][] = [
-      'Premium', 'Standard', 'Budget', 'Free-to-Play', 
-      'Wait-for-Sale', 'Never-Buy'
-    ];
-    
-    if (typeof body.title !== 'string' || 
-        typeof body.gameTitle !== 'string' || 
-        typeof body.quickVerdict !== 'string' ||
-        typeof body.content !== 'string' ||
-        typeof body.featuredImage !== 'string' ||
-        !allowedTiers.includes(body.fairPriceTier as GameReview['fairPriceTier'])) {
-      return NextResponse.json(
-        { 
-          message: 'Invalid field types or values',
-          details: {
-            title: typeof body.title,
-            gameTitle: typeof body.gameTitle,
-            quickVerdict: typeof body.quickVerdict,
-            content: typeof body.content,
-            featuredImage: typeof body.featuredImage,
-            fairPriceTier: body.fairPriceTier
-          }
-        }, 
-        { status: 400 }
-      );
+    const data = await request.json();
+    if (!data.slug) {
+      data.slug = slugify(data.title || '');
     }
+    // Clean up empty string fields for optional fields
+    if (data.featuredImagePathname === '') data.featuredImagePathname = undefined;
+    if (data.youtubeVideoId === '') data.youtubeVideoId = undefined;
+    if (data.fairPriceAmount === '') data.fairPriceAmount = undefined;
 
-    const slug = generateSlug(body.title);
-    const newReview: GameReview = {
-      id: uuidv4(),
-      title: body.title!,
-      slug,
-      gameTitle: body.gameTitle!,
-      fairPriceTier: body.fairPriceTier!,
-      fairPriceAmount: body.fairPriceAmount,
-      quickVerdict: body.quickVerdict!,
-      content: body.content!,
-      featuredImage: body.featuredImage!,
-      youtubeVideoId: body.youtubeVideoId,
-      pros: body.pros || [],
-      cons: body.cons || [],
-      status: 'draft',
-      publishedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const review = await prisma.review.create({
+      data: {
+        ...data,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...(data.status === 'published' && { publishedAt: new Date() }),
+      },
+    });
 
-    await saveReview(newReview);
-    return NextResponse.json(newReview, { status: 201 });
+    return NextResponse.json(review);
   } catch (error) {
-    return NextResponse.json(
-      { 
-        message: 'Failed to create review',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      }, 
-      { status: 500 }
-    );
+    console.error('Error creating review:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
 export async function PUT(request: Request) {
   try {
-    const body = await request.json();
-    const { slug } = body;
-    const allReviews = await getAllReviews();
-    const reviewIndex = allReviews.findIndex(review => review.slug === slug);
-
-    if (reviewIndex === -1) {
-      return NextResponse.json({ message: 'Review not found' }, { status: 404 });
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const updatedReview: GameReview = {
-      ...allReviews[reviewIndex],
-      ...body,
-      updatedAt: new Date().toISOString(),
-    };
+    const data = await request.json();
+    const { ids, action } = data;
 
-    await saveReview(updatedReview);
-    return NextResponse.json(updatedReview);
-  } catch (error) {
-    return NextResponse.json(
-      {
-        message: 'Failed to update review',
-        details: error instanceof Error ? error.message : 'Unknown error'
+    if (ids && action) {
+      // Handle batch actions
+      switch (action) {
+        case 'publish':
+          await prisma.review.updateMany({
+            where: { id: { in: ids } },
+            data: {
+              status: 'published',
+              publishedAt: new Date(),
+              updatedAt: new Date(),
+            },
+          });
+          break;
+        case 'unpublish':
+          await prisma.review.updateMany({
+            where: { id: { in: ids } },
+            data: {
+              status: 'draft',
+              updatedAt: new Date(),
+            },
+          });
+          break;
+        case 'delete':
+          await prisma.review.deleteMany({
+            where: { id: { in: ids } },
+          });
+          break;
+        default:
+          return new NextResponse('Invalid action', { status: 400 });
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
+    // Handle single review update
+    const { id, ...updateData } = data;
+    const review = await prisma.review.update({
+      where: { id },
+      data: {
+        ...updateData,
+        updatedAt: new Date(),
+        ...(updateData.status === 'published' && { publishedAt: new Date() }),
       },
-      { status: 500 }
-    );
+    });
+
+    return NextResponse.json(review);
+  } catch (error) {
+    console.error('Error updating review:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }
 
 export async function DELETE(request: Request) {
   try {
-    const body = await request.json();
-    const { id } = body;
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ message: 'Review ID is required' }, { status: 400 });
+      return new NextResponse('Missing review ID', { status: 400 });
     }
 
-    const allReviews = await getAllReviews();
-    const reviewIndex = allReviews.findIndex(review => review.id === id);
+    await prisma.review.delete({
+      where: { id },
+    });
 
-    if (reviewIndex === -1) {
-      return NextResponse.json({ message: 'Review not found' }, { status: 404 });
-    }
-
-    allReviews.splice(reviewIndex, 1);
-    await saveReview(allReviews[reviewIndex]);
-
-    return NextResponse.json({ message: 'Review deleted successfully' });
+    return new NextResponse(null, { status: 204 });
   } catch (error) {
-    return NextResponse.json(
-      {
-        message: 'Failed to delete review',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
-      { status: 500 }
-    );
+    console.error('Error deleting review:', error);
+    return new NextResponse('Internal Server Error', { status: 500 });
   }
 }

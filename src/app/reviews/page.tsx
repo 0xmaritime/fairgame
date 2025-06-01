@@ -29,7 +29,7 @@ async function fetchReviews(tier?: string): Promise<GameReview[]> {
   const params = new URLSearchParams();
   if (tier) params.set('tier', tier);
 
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/reviews?${params.toString()}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/public-reviews?${params.toString()}`, {
     cache: 'no-store',
   });
 

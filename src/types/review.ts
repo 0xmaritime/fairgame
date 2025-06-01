@@ -1,9 +1,9 @@
-export interface GameReview {
+export interface Review {
   id: string;
   title: string;
   slug: string;
   gameTitle: string;
-  fairPriceTier: 'Premium' | 'Standard' | 'Budget' | 'Free-to-Play' | 'Wait-for-Sale' | 'Never-Buy' | 'Subscription-Only';
+  fairPriceTier: string;
   fairPriceAmount?: number;
   quickVerdict: string;
   content: string;
@@ -12,9 +12,8 @@ export interface GameReview {
   youtubeVideoId?: string;
   pros: string;
   cons: string;
-  publishedAt?: string;
-  updatedAt: string;
   status: 'draft' | 'published';
-  lastModifiedBy?: string;
-  viewCount?: number;
-}
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string;
+} 

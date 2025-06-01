@@ -9,12 +9,19 @@ interface ReviewCardProps {
 }
 
 const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
+  // Ensure the image URL is absolute
+  const imageUrl = review.featuredImage?.startsWith('http') 
+    ? review.featuredImage 
+    : review.featuredImage?.startsWith('/') 
+      ? review.featuredImage 
+      : `/${review.featuredImage}`;
+
   return (
     <Link href={`/reviews/${review.slug}`} className="block border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-200 ease-in-out">
       <div className="relative w-full aspect-video bg-gray-100"> {/* Use aspect-video for better ratio */}
         {review.featuredImage && (
           <Image
-            src={`/uploads/${review.featuredImage}`}
+            src={imageUrl}
             alt={review.title}
             fill
             style={{ objectFit: 'cover' }}

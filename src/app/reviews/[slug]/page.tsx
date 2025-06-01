@@ -55,6 +55,13 @@ export default function ReviewPage({ params }: ReviewPageProps) {
     notFound();
   }
 
+  // Ensure the image URL is absolute
+  const imageUrl = review.featuredImage?.startsWith('http') 
+    ? review.featuredImage 
+    : review.featuredImage?.startsWith('/') 
+      ? review.featuredImage 
+      : `/${review.featuredImage}`;
+
   return (
     <div className="max-w-3xl mx-auto"> {/* Use max-w-3xl and mx-auto for centering */}
       {/* JSON-LD Structured Data */}
@@ -109,7 +116,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
             } : undefined,
              "image": review.featuredImage ? {
                "@type": "ImageObject",
-               "url": `${process.env.NEXT_PUBLIC_BASE_URL}/uploads/${review.featuredImage}`,
+               "url": imageUrl,
                // Add width and height if known
              } : undefined,
              // Add video if YouTube video ID is available
@@ -150,9 +157,9 @@ export default function ReviewPage({ params }: ReviewPageProps) {
 
       {review.featuredImage && (
         <img
-          src={`/uploads/${review.featuredImage}`}
+          src={imageUrl}
           alt={review.title}
-          className="w-full h-auto rounded-lg mb-8" // Adjusted spacing
+          className="w-full h-auto rounded-lg mb-8"
         />
       )}
 

@@ -30,22 +30,24 @@ export async function PUT(request: Request, context: { params: { slug: string } 
     const { slug } = context.params;
     const body = await request.json();
 
-    // Basic validation
-    if (!body.title || !body.gameTitle || !body.fairPriceTier || !body.quickVerdict || !body.content || !body.featuredImage) {
-      return NextResponse.json({ message: 'Missing required fields' }, { status: 400 });
+    // Get the existing review
+    const existingReview = await getReviewBySlug(slug);
+    if (!existingReview) {
+      return NextResponse.json({ message: 'Review not found' }, { status: 404 });
     }
 
-    // Ensure slug consistency if title changes
-    const newSlug = generateSlug(body.title);
-    if (newSlug !== slug) {
-      await deleteReview(slug);
-    }
-
+    // Merge the updates with the existing review
     const updatedReview: GameReview = {
+      ...existingReview,
       ...body,
-      slug: newSlug,
+      slug: body.title ? generateSlug(body.title) : existingReview.slug,
       updatedAt: new Date().toISOString(),
     };
+
+    // If title changed, we need to delete the old file
+    if (body.title && generateSlug(body.title) !== slug) {
+      await deleteReview(slug);
+    }
 
     await saveReview(updatedReview);
     return NextResponse.json(updatedReview);

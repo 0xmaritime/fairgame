@@ -36,13 +36,35 @@ export async function getReviewBySlug(slug: string): Promise<GameReview | null> 
 }
 
 export async function saveReview(review: GameReview): Promise<void> {
-  const filePath = path.join(reviewsDirectory, `${review.slug}.json`);
-  await fs.writeFile(filePath, JSON.stringify(review, null, 2));
+  try {
+    // Ensure the reviews directory exists
+    await fs.mkdir(reviewsDirectory, { recursive: true });
+    
+    const filePath = path.join(reviewsDirectory, `${review.slug}.json`);
+    console.log('Saving review to:', filePath);
+    
+    // Write the review to a temporary file first
+    const tempFilePath = `${filePath}.tmp`;
+    await fs.writeFile(tempFilePath, JSON.stringify(review, null, 2));
+    
+    // Then rename it to the final file
+    await fs.rename(tempFilePath, filePath);
+    
+    console.log('Review saved successfully to:', filePath);
+  } catch (error) {
+    console.error('Error saving review:', error);
+    throw new Error(`Failed to save review: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 export async function deleteReview(slug: string): Promise<void> {
   const filePath = path.join(reviewsDirectory, `${slug}.json`);
-  await fs.unlink(filePath);
+  try {
+    await fs.unlink(filePath);
+  } catch (error) {
+    console.error(`Error deleting review ${slug}:`, error);
+    throw error;
+  }
 }
 
 export function generateSlug(title: string): string {
