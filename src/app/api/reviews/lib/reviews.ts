@@ -1,31 +1,35 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { GameReview } from '../../../../types/game-review';
+import { Review } from '../../../../types';
 
 const reviewsDirectory = path.join(process.cwd(), 'content', 'reviews');
 
-export async function getAllReviews(): Promise<GameReview[]> {
+export async function getAllReviews(): Promise<Review[]> {
   try {
     const filenames = await fs.readdir(reviewsDirectory);
     const reviews = await Promise.all(
       filenames.map(async (filename) => {
         const filePath = path.join(reviewsDirectory, filename);
         const fileContents = await fs.readFile(filePath, 'utf8');
-        return JSON.parse(fileContents) as GameReview;
+        return JSON.parse(fileContents) as Review;
       })
     );
-    return reviews.sort((a: GameReview, b: GameReview) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+    return reviews.sort((a: Review, b: Review) => {
+      const dateA = a.publishedAt ? new Date(a.publishedAt) : new Date(a.updatedAt);
+      const dateB = b.publishedAt ? new Date(b.publishedAt) : new Date(b.updatedAt);
+      return dateB.getTime() - dateA.getTime();
+    });
   } catch (error) {
     console.error("Error in getAllReviews:", error);
     return [];
   }
 }
 
-export async function getReviewBySlug(slug: string): Promise<GameReview | null> {
+export async function getReviewBySlug(slug: string): Promise<Review | null> {
   const filePath = path.join(reviewsDirectory, `${slug}.json`);
   try {
     const fileContents = await fs.readFile(filePath, 'utf8');
-    return JSON.parse(fileContents) as GameReview;
+    return JSON.parse(fileContents) as Review;
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       return null;
@@ -35,7 +39,7 @@ export async function getReviewBySlug(slug: string): Promise<GameReview | null> 
   }
 }
 
-export async function saveReview(review: GameReview): Promise<void> {
+export async function saveReview(review: Review): Promise<void> {
   try {
     // Ensure the reviews directory exists
     await fs.mkdir(reviewsDirectory, { recursive: true });

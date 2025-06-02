@@ -1,22 +1,20 @@
 /* Import Inter font from Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-/* Tailwind v4 directives */
-@import "tailwindcss";
-@import "tailwindcss/utilities";
-
 /* Base styles */
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* Price tier colors */
-@layer utilities {
-  .bg-price-premium { background-color: #10b981; }
-  .bg-price-standard { background-color: #3b82f6; }
-  .bg-price-budget { background-color: #f59e0b; }
-  .bg-price-free-play { background-color: #ef4444; }
-  .bg-price-wait-sale { background-color: #6b7280; }
-  .bg-price-never-buy { background-color: #374151; }
-  .bg-price-subscription { background-color: #8b5cf6; }
+/* Tailwind v4 theme directive */
+@import "tailwindcss";
+
+@theme {
+  --color-premium: #10b981;
+  --color-standard: #3b82f6;
+  --color-budget: #f59e0b;
+  --color-free: #ef4444;
+  --color-wait: #6b7280;
+  --color-never: #374151;
+  --color-subscription: #8b5cf6;
 }

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
-import { GameReview } from '@/types/game-review';
+import { Review } from '@/types'; // Import Review type from consolidated types file
 import FairPriceBadge from '@/components/FairPriceBadge';
 import YouTubeEmbed from '@/components/YouTubeEmbed';
 import Markdown from 'react-markdown';
@@ -17,7 +17,7 @@ interface ReviewPageProps {
 
 export default function ReviewPage({ params }: ReviewPageProps) {
   const { slug } = params;
-  const [review, setReview] = useState<GameReview | null>(null);
+  const [review, setReview] = useState<Review | null>(null); // Use Review type
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

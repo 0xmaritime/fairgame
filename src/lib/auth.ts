@@ -1,14 +1,19 @@
 import { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import prisma from './prisma';
-import { verifyPassword } from './password';
 
+// Extend the session user type to include id
 declare module 'next-auth' {
+  interface User {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+  }
+  
   interface Session {
     user: {
       id: string;
-      email: string;
       name?: string | null;
+      email?: string | null;
     };
   }
 }
@@ -22,29 +27,23 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
+        // Get admin credentials from environment
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        
+        // Verify credentials
+        if (!adminEmail || !adminPassword) {
+          throw new Error('Admin credentials not configured');
         }
-
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user) {
-          return null;
+        
+        if (credentials?.email === adminEmail && credentials?.password === adminPassword) {
+          return {
+            id: 'admin',
+            email: adminEmail,
+            name: 'Admin'
+          };
         }
-
-        const isPasswordValid = verifyPassword(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-        };
+        return null;
       },
     }),
   ],
@@ -57,9 +56,11 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id as string;
-        session.user.name = token.name as string | null;
-        session.user.email = token.email as string | null;
+        session.user = {
+          id: token.id as string,
+          name: token.name,
+          email: token.email as string
+        };
       }
       return session;
     },
@@ -72,4 +73,4 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
   },
-}; 
+};

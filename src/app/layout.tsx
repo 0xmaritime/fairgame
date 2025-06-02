@@ -1,9 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Layout from "@/components/Layout";
-import Providers from "@/components/Providers";
-
-// Removed static metadata
 
 export default function RootLayout({
   children,
@@ -12,11 +8,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        <Providers>
-          <Layout>{children}</Layout>
-        </Providers>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
