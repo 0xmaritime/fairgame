@@ -3,8 +3,9 @@ import { getReviewBySlug, saveReview, deleteReview, generateSlug } from '../lib/
 import { Review } from '@/types'; // Import Review type from consolidated types file
 
 export async function GET(request: Request, context: { params: { slug: string } }) {
+  const { slug } = context.params;
+  
   try {
-    const { slug } = context.params;
     const review = await getReviewBySlug(slug);
 
     if (!review) {
@@ -28,9 +29,10 @@ export async function GET(request: Request, context: { params: { slug: string } 
 }
 
 export async function PUT(request: Request, context: { params: { slug: string } }) {
+  const { slug } = context.params;
+  
   try {
-    const { slug } = context.params;
-    const body = await request.json();
+    const body = await request.json() as Partial<Review>;
 
     // Get the existing review
     const existingReview = await getReviewBySlug(slug);
@@ -66,8 +68,9 @@ export async function PUT(request: Request, context: { params: { slug: string } 
 }
 
 export async function DELETE(request: Request, context: { params: { slug: string } }) {
+  const { slug } = context.params;
+  
   try {
-    const { slug } = context.params;
     await deleteReview(slug);
     return new NextResponse(null, { status: 204 });
   } catch (error) {

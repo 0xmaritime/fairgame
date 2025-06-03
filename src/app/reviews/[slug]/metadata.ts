@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Review } from '@/types';
 
 interface ReviewPageProps {
   params: {
@@ -14,7 +15,7 @@ export async function generateMetadata({ params }: ReviewPageProps): Promise<Met
     if (!res.ok) {
       return {};
     }
-    const review = await res.json();
+    const review = await res.json() as Review;
 
     if (!review) {
       return {};

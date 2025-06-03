@@ -1,33 +1,20 @@
 import React from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { Review } from '@/types';
 import FairPriceBadge from './FairPriceBadge';
+import { ReviewImage } from './ReviewImage'; // Import the new component
 
 interface ReviewCardProps {
   review: Review;
 }
 
 const ReviewCard: React.FC<ReviewCardProps> = ({ review }) => {
-  // Ensure image URLs are properly formatted
-  let imageUrl = review.featuredImage;
-  if (imageUrl && !imageUrl.startsWith('http')) {
-    // Handle different image path formats
-    if (imageUrl.startsWith('uploads/')) {
-      imageUrl = `/${imageUrl}`;
-    } else if (imageUrl.includes('/')) {
-      imageUrl = `/${imageUrl}`;
-    } else {
-      imageUrl = `/uploads/uploads/${imageUrl}`;
-    }
-  }
-
   return (
     <Link href={`/reviews/${review.slug}`} className="block border border-gray-200 rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-shadow duration-200 ease-in-out">
       <div className="relative w-full aspect-video bg-gray-100">
-        {imageUrl && (
-          <Image
-            src={imageUrl}
+        {review.featuredImage && (
+          <ReviewImage
+            src={review.featuredImage} // Pass the image source directly
             alt={review.title}
             fill
             style={{ objectFit: 'cover' }}

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { signOut } from 'next-auth/react';
 import { Review } from '../../types';
 import Link from 'next/link';
+import { ErrorMessage } from '@/components/ErrorMessage'; // Import ErrorMessage component
 
 interface AdminDashboardProps {
   session: any;
@@ -36,7 +37,7 @@ export default function AdminDashboard({ session, reviews }: AdminDashboardProps
         </button>
       </div>
 
-      {error && <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">{error}</div>}
+      {error && <ErrorMessage message={error} />} {/* Use ErrorMessage component */}
       {success && <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">{success}</div>}
 
       <div className="mb-8">
@@ -59,7 +60,7 @@ export default function AdminDashboard({ session, reviews }: AdminDashboardProps
                   {new Date(review.publishedAt || '').toLocaleDateString()}
                 </span>
                 <Link
-                  href={`/admin/reviews/${review.slug}/edit`}
+                  href={`/admin/edit/${review.slug}`}
                   className="text-blue-500 hover:text-blue-700"
                 >
                   Edit
@@ -82,7 +83,7 @@ export default function AdminDashboard({ session, reviews }: AdminDashboardProps
                   {new Date(review.updatedAt).toLocaleDateString()}
                 </span>
                 <Link
-                  href={`/admin/reviews/${review.slug}/edit`}
+                  href={`/admin/edit/${review.slug}`}
                   className="text-blue-500 hover:text-blue-700"
                 >
                   Edit

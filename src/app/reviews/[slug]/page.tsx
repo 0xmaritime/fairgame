@@ -1,6 +1,4 @@
-'use client';
-
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { notFound } from 'next/navigation';
 import { Review } from '@/types'; // Import Review type from consolidated types file
 import FairPriceBadge from '@/components/FairPriceBadge';
@@ -8,6 +6,8 @@ import YouTubeEmbed from '@/components/YouTubeEmbed';
 import Markdown from 'react-markdown';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { getReviewBySlug } from '@/app/api/reviews/lib/reviews'; // Import server-side fetch function
+import { ReviewImage } from '@/components/ReviewImage'; // Import ReviewImage component
 
 interface ReviewPageProps {
   params: {
@@ -15,52 +15,14 @@ interface ReviewPageProps {
   };
 }
 
-export default function ReviewPage({ params }: ReviewPageProps) {
+export default async function ReviewPage({ params }: ReviewPageProps) { // Make component async
   const { slug } = params;
-  const [review, setReview] = useState<Review | null>(null); // Use Review type
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchReview = async () => {
-      try {
-        const res = await fetch(`/api/reviews/${slug}`);
-        if (!res.ok) {
-          if (res.status === 404) {
-            notFound();
-          }
-          throw new Error('Failed to fetch review');
-        }
-        const data = await res.json();
-        setReview(data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const review = await getReviewBySlug(slug); // Fetch data server-side
 
-    fetchReview();
-  }, [slug]);
-
-  if (loading) {
-    return <div className="text-center py-8">Loading review...</div>;
-  }
-
-  if (error) {
-    return <div className="text-center py-8 text-red-500">Error: {error}</div>;
-  }
-
-  if (!review) {
+  if (!review || review.status !== 'published') { // Check if review exists and is published
     notFound();
   }
-
-  // Ensure the image URL is absolute
-  const imageUrl = review.featuredImage?.startsWith('http') 
-    ? review.featuredImage 
-    : review.featuredImage?.startsWith('/') 
-      ? review.featuredImage 
-      : `/${review.featuredImage}`;
 
   return (
     <div className="max-w-3xl mx-auto"> {/* Use max-w-3xl and mx-auto for centering */}
@@ -84,10 +46,10 @@ export default function ReviewPage({ params }: ReviewPageProps) {
             "dateModified": review.updatedAt,
             "headline": review.title,
             "reviewBody": review.content, // Full review content
-            "url": `${process.env.NEXT_PUBLIC_BASE_URL}/reviews/${review.slug}`, // Canonical URL
+            "url": `${process.env.NEXT_PUBLIC_SITE_URL}/reviews/${review.slug}`, // Canonical URL
             "mainEntityOfPage": {
               "@type": "WebPage",
-              "@id": `${process.env.NEXT_PUBLIC_BASE_URL}/reviews/${review.slug}` // Canonical URL
+              "@id": `${process.env.NEXT_PUBLIC_SITE_URL}/reviews/${review.slug}` // Canonical URL
             },
             "publisher": {
               "@type": "Organization",
@@ -116,7 +78,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
             } : undefined,
              "image": review.featuredImage ? {
                "@type": "ImageObject",
-               "url": imageUrl,
+               "url": review.featuredImage, // Pass the image source directly
                // Add width and height if known
              } : undefined,
              // Add video if YouTube video ID is available
@@ -156,9 +118,11 @@ export default function ReviewPage({ params }: ReviewPageProps) {
       </div>
 
       {review.featuredImage && (
-        <img
-          src={imageUrl}
+        <ReviewImage
+          src={review.featuredImage} // Pass the image source directly
           alt={review.title}
+          width={800} // Add appropriate width
+          height={450} // Add appropriate height
           className="w-full h-auto rounded-lg mb-8"
         />
       )}
@@ -201,7 +165,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
       <div className="mt-8 border-t pt-4 flex items-center space-x-4">
         <span className="text-gray-600">Share:</span>
         <a
-          href={`https://twitter.com/intent/tweet?url=${process.env.NEXT_PUBLIC_BASE_URL}/reviews/${review.slug}&text=${encodeURIComponent(review.title)}`}
+          href={`https://twitter.com/intent/tweet?url=${process.env.NEXT_PUBLIC_SITE_URL}/reviews/${review.slug}&text=${encodeURIComponent(review.title)}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-500 hover:text-blue-700"
@@ -209,7 +173,7 @@ export default function ReviewPage({ params }: ReviewPageProps) {
           Twitter
         </a>
         <a
-          href={`https://www.facebook.com/sharer/sharer.php?u=${process.env.NEXT_PUBLIC_BASE_URL}/reviews/${review.slug}`}
+          href={`https://www.facebook.com/sharer/sharer.php?u=${process.env.NEXT_PUBLIC_SITE_URL}/reviews/${review.slug}`}
           target="_blank"
           rel="noopener noreferrer"
           className="text-blue-800 hover:text-blue-900"

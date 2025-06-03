@@ -12,8 +12,10 @@ export interface Review {
   pros: string[];
   cons: string[];
   status: 'draft' | 'published';
-  publishedAt?: string;
+  publishedAt: string;
   updatedAt: string;
+  lastModifiedBy?: string;
+  viewCount?: number;
 }
 
 export interface ReviewFormData {

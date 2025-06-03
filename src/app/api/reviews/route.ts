@@ -119,7 +119,7 @@ export async function POST(request: Request) {
       pros,
       cons,
       status: body.status || 'draft',
-      publishedAt: body.status === 'published' ? new Date().toISOString() : undefined,
+      publishedAt: body.status === 'published' ? new Date().toISOString() : new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
@@ -184,6 +184,9 @@ export async function PUT(request: Request) {
       ...body,
       slug: slug,
       updatedAt: new Date().toISOString(),
+      publishedAt: body.status === 'published' && !existingReview.publishedAt 
+        ? new Date().toISOString() 
+        : existingReview.publishedAt,
       pros,
       cons
     };
