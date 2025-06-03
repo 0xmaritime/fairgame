@@ -1,13 +1,13 @@
 import React from 'react';
-import { GameReview } from '../types/game-review';
+import { Review } from '@/types';
 
 interface FairPriceBadgeProps {
-  tier: GameReview['fairPriceTier'];
+  tier: Review['fairPriceTier'];
   amount?: number;
   size?: 'sm' | 'md' | 'lg';
 }
 
-const tierColors: Record<GameReview['fairPriceTier'], string> = {
+const tierColors: Record<Review['fairPriceTier'], string> = {
   Premium: 'bg-price-premium text-white',
   Standard: 'bg-price-standard text-white',
   Budget: 'bg-price-budget text-black',

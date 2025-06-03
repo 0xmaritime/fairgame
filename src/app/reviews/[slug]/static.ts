@@ -1,4 +1,4 @@
-import { GameReview } from '@/types/game-review';
+import { Review } from '@/types';
 
 export async function generateStaticParams() {
   const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/reviews`);
@@ -6,7 +6,7 @@ export async function generateStaticParams() {
     return [];
   }
   const { reviews } = await res.json();
-  return reviews.map((review: GameReview) => ({
+  return reviews.map((review: Review) => ({
     slug: review.slug,
   }));
 }

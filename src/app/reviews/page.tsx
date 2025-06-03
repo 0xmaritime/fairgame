@@ -1,5 +1,5 @@
 import React from 'react';
-import { GameReview } from '@/types/game-review';
+import { Review } from '@/types';
 import ReviewCard from '@/components/ReviewCard';
 import type { Metadata } from 'next';
 
@@ -9,7 +9,7 @@ interface ReviewsPageProps {
   };
 }
 
-const availableTiers: GameReview['fairPriceTier'][] = [
+const availableTiers: Review['fairPriceTier'][] = [
   'Premium',
   'Standard',
   'Budget',
@@ -25,7 +25,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-async function fetchReviews(tier?: string): Promise<GameReview[]> {
+async function fetchReviews(tier?: string): Promise<Review[]> {
   const params = new URLSearchParams();
   if (tier) params.set('tier', tier);
 
