@@ -29,4 +29,5 @@ export interface ReviewFormData {
   youtubeVideoId?: string;
   pros: string[];
   cons: string[];
+  status: 'draft' | 'published'; // Add status property
 }
